@@ -3,7 +3,7 @@ require 'spec_helper'
 
 
 
-describe EM::FTPD::Server, "initial" do
+ describe EM::FTPD::Server, "initial" do
 
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
@@ -19,7 +19,7 @@ describe EM::FTPD::Server, "initial" do
 end
 
 
-describe EM::FTPD::Server, "Authorisation" do
+ describe EM::FTPD::Server, "Authorisation" do
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
@@ -55,7 +55,7 @@ describe EM::FTPD::Server, "Authorisation" do
 end
 
 
-describe EM::FTPD::Server, "Make dir" do
+ describe EM::FTPD::Server, "Make dir" do
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
@@ -73,21 +73,21 @@ describe EM::FTPD::Server, "Make dir" do
     log_in()
     @test.receive_line("MKD rspectest")
     @test.sent_data.should match(/257.+/)
-    remove_dir() #call to remove created dir
+    remove_dir_from_db() #call to remove created dir
    end
   end
  
   end
 
 
-describe EM::FTPD::Server, "Remove Dir" do
+ describe EM::FTPD::Server, "Remove Dir" do
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
   
   
 
-context "Unauthorised user calls remove_dir" do
+ context "Unauthorised user calls remove_dir" do
    it "should respond with 530 " do
     @test.reset_sent!
     @test.receive_line("RMD rspectest")
@@ -97,7 +97,7 @@ context "Unauthorised user calls remove_dir" do
  
  context "Logged in user calls delete dir" do
    it "should respond with 250 " do
-    create_dir() #create a dir to test remove
+    create_dir_in_db() #create a dir to test remove
     log_in()
     @test.receive_line("RMD rspectest")
     @test.sent_data.should match(/250.+/)
@@ -108,7 +108,7 @@ context "Unauthorised user calls remove_dir" do
 end
 
 
-describe EM::FTPD::Server, "Change_dir" do
+ describe EM::FTPD::Server, "Change_dir" do
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
@@ -124,12 +124,12 @@ describe EM::FTPD::Server, "Change_dir" do
   
   context "Logged in and calls change dir " do
    it "should respond with 250 if called with dir name " do
-   create_dir() #create a dir to test remove
+   create_dir_in_db() #create a dir to test remove
    log_in()
     @test.receive_line("CWD rspectest")
     @test.sent_data.should match(/250.+/)
     @test.name_prefix.should eql("/rspectest")
-   remove_dir() # Call to remove created dir
+   remove_dir_from_db() # Call to remove created dir
    end
    
   end
@@ -139,7 +139,7 @@ describe EM::FTPD::Server, "Change_dir" do
 end
 
 
-describe EM::FTPD::Server, "Dir LIST" do
+ describe EM::FTPD::Server, "Dir LIST" do
   
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
@@ -174,14 +174,14 @@ describe EM::FTPD::Server, "Dir LIST" do
   end
 
    it "should respond with 150 ... 226 when called in the files dir with no param" do
-    create_dir() #create a dir to test remove
+    create_dir_in_db() #create a dir to test remove
     log_in()
     @test.receive_line("CWD rspectest")
     @test.receive_line("PASV")
     @test.reset_sent!
     @test.receive_line("LIST")
     @test.sent_data.should match(/150.+226.+/m)
-    remove_dir() # Call to remove created dir 
+    remove_dir_from_db() # Call to remove created dir 
   
    end
   
@@ -191,7 +191,7 @@ describe EM::FTPD::Server, "Dir LIST" do
 end
 
 
-describe EM::FTPD::Server, "Put Files" do
+ describe EM::FTPD::Server, "Put Files" do
   
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
@@ -216,19 +216,19 @@ describe EM::FTPD::Server, "Put Files" do
  
    it "should respond with 150 ... 226 when called in the put files " do
      
-     create_file('rspectest')
+     create_tempfile(@filename)
      
      log_in_pasv()
-     @test.receive_line("STOR file.path rspectest")
+     @test.receive_line("STOR file.path @filename")
      @test.sent_data.should match(/150.+200.+/m)
-     remove_file()
+     remove_file_from_db()
     
    end
   end 
 
 end
 
-describe EM::FTPD::Server, "Delete Files" do
+ describe EM::FTPD::Server, "Delete Files" do
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
@@ -241,7 +241,7 @@ describe EM::FTPD::Server, "Delete Files" do
   end
 end
 
-context "Logged in user calls delete file" do
+ context "Logged in user calls delete file" do
   it "should respond with 553 when the no paramater " do
     log_in()
     @test.reset_sent!
@@ -250,7 +250,7 @@ context "Logged in user calls delete file" do
   end
 
   it "should respond with 250 when the file is deleted" do
-    put_files() # create file on remote
+    put_files_in_db() # create file on remote
     log_in()
     @test.reset_sent!
     @test.receive_line("DELE path rspectest")
@@ -267,17 +267,17 @@ context "Logged in user calls delete file" do
  end
 end
 
-describe EM::FTPD::Server, "Get Files" do
+ describe EM::FTPD::Server, "Get Files" do
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
   
  context "Called by not logged in user" do
- it "should always respond with 530 " do
+   it "should always respond with 530 " do
     @test.reset_sent!
     @test.receive_line("RETR filesquery")
     @test.sent_data.should match(/530.+/)
-  end
+   end
  end
 
  context "Logged in user calls get files" do
@@ -286,7 +286,7 @@ describe EM::FTPD::Server, "Get Files" do
      log_in()
      @test.receive_line("RETR")
      @test.sent_data.should match(/553.+/)
-   end
+  end
 
   
    it "should always respond with 551 when called with an invalid file" do
@@ -299,12 +299,12 @@ describe EM::FTPD::Server, "Get Files" do
    end
 
    it "should always respond with 150..226 when called with valid file" do
-     put_files()
+     put_files_in_db()
      log_in_pasv()
      @test.receive_line("RETR path rspectest /tmp/rspectest")
      @test.sent_data.should match(//)
-     remove_file() # from database
-     remove_file_from_sys()
+     remove_file_from_db() # from database
+     remove_file_from_sys() # delete file from tmp directory
    end
  end
 end
@@ -322,33 +322,32 @@ private
    
  end
  
- def log_in_pasv()
+ def log_in_pasv() 
     @test.receive_line("USER 12345")
     @test.receive_line("PASS 12345")
     @test.receive_line("PASV")
     @test.reset_sent!
  end
  
- def create_dir()
+ def create_dir_in_db() # create dir in db
    log_in()
     @test.receive_line("MKD rspectest")
  end
  
- def remove_dir()
+ def remove_dir_from_db() # remove dir from db
    
    log_in()
     @test.receive_line("RMD rspectest")
    
  end
- 
- 
- def create_file(filename)
-   
-   @file = Tempfile.new(filename)   
-   @file.write("hello world")   
- end
- 
- def remove_file()
+  
+ # def create_tempfile(filename) # create a tempfile
+#    
+   # @file = Tempfile.new(filename)   
+   # @file.write("hello world")   
+ # end
+#  
+ def remove_file_from_db() # removes file from db
     log_in()
     @test.reset_sent!
     @test.receive_line("DELE path rspectest")
@@ -358,13 +357,13 @@ private
     
  end
  
- def put_files()
-    create_file('rspectest')
+ def put_files_in_db() # puts file in db
+    create_tempfile('rspectest')
     log_in_pasv()
     @test.receive_line("STOR file.path rspectest")
  end
 
-def remove_file_from_sys()
+ def remove_file_from_sys() #removes file from system
   if File.exist?("/tmp/rspectest")
      
      FileUtils.rm("/tmp/rspectest")
