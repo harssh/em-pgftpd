@@ -2,6 +2,7 @@
 require "./PgFTPDriver"
 require "rubygems"
 require "bundler"
+require 'webmock/rspec'
 Bundler.setup
 
 require 'em-ftpd'
@@ -11,11 +12,11 @@ require 'em-ftpd'
 # in spec/support/ and its subdirectories.
 Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each {|f| require f }
 
-#RSpec.configure do |config|
-#  config.include ReaderSpecHelper
-#end
+# RSpec.configure do |config|
+# #  config.include ReaderSpecHelper
+# # Gives you 'use_vcr_cassette' as a macro
+# config.extend VCR::RSpec::Macros
+# end
 
 
-def filename()
-  @filename = 'rspectest'
-end
+

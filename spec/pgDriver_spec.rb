@@ -1,5 +1,6 @@
 require 'tempfile'
 require 'spec_helper'
+require 'vcr'
 
 
 
@@ -12,26 +13,31 @@ require 'spec_helper'
   it "should default to a root name" do
     @test.name_prefix.should eql("/")
   end
-
-  it "should respond with 220 when connection is opened" do
-    @test.sent_data.should match(/^220/)
+  context "connection is opened" do
+   VCR.use_cassette 'connection' do
+    it "should respond with 220 when connection is opened" do
+      @test.sent_data.should match(/^220/)
+    end
+   end
   end
 end
 
 
  describe EM::FTPD::Server, "Authorisation" do
+   VCR.use_cassette 'authorisation/access' do 
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
   
   context "with authorised access" do
-       
+     
        it "should respond with 230 " do
         @test.receive_line("USER 12345")
         @test.reset_sent!
         @test.receive_line("PASS 12345")
         @test.sent_data.should match(/230.+/)
        end
+      
   end
   
   context "with unauthorised access as no password" do
@@ -51,7 +57,7 @@ end
       @test.sent_data.should match(/553.+/)
     end
   end
-   
+   end
 end
 
 

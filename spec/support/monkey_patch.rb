@@ -2,10 +2,11 @@
 
 # monkey patch a few classes to allow testing without a network connection
 class EM::FTPD::Server
+ VCR.use_cassette 'connection' do
   def send_data(data)
     sent_data << data
   end
-
+end
   def sent_data
     @sent_data ||= ''
   end
