@@ -2,6 +2,7 @@
 require "./PgFTPDriver"
 require "rubygems"
 require "bundler"
+require "vcr"
 require 'webmock/rspec'
 Bundler.setup
 
@@ -18,5 +19,12 @@ Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each {|f| require f }
 # config.extend VCR::RSpec::Macros
 # end
 
+VCR.configure do |c|
+  
+  c.cassette_library_dir = 'spec/vcr'
+  
+  c.hook_into :webmock
+   
+end
 
 

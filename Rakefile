@@ -1,7 +1,7 @@
 require "rubygems"
 require "bundler"
 Bundler.setup
-
+require 'cucumber/rake/task'
 require 'rake'
 require 'rdoc/task'
 require 'rspec/core/rake_task'
@@ -27,4 +27,9 @@ RDoc::Task.new do |rdoc|
   rdoc.rdoc_files.include('MIT-LICENSE')
   rdoc.rdoc_files.include('lib/**/*.rb')
   rdoc.options << "--inline-source"
+end
+
+
+Cucumber::Rake::Task.new do |t|
+  t.cucumber_opts = "--format pretty"
 end

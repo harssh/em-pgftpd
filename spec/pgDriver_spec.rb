@@ -14,7 +14,7 @@ require 'vcr'
     @test.name_prefix.should eql("/")
   end
   context "connection is opened" do
-   VCR.use_cassette 'connection' do
+   VCR.use_cassette 'connection/open' do
     it "should respond with 220 when connection is opened" do
       @test.sent_data.should match(/^220/)
     end
@@ -140,8 +140,6 @@ end
    end
    
   end
-
- 
 
 end
 
