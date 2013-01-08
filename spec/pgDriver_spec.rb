@@ -71,9 +71,10 @@ end
   context "Logged in user calls Make dir" do
    it "should respond with 257 when the directory is created" do
     log_in()
-    @test.receive_line("MKD rspectest")
+    @tempdirname = [*('A'..'Z')].sample(8).join
+    @test.receive_line("MKD #{@tempdirname}")
     @test.sent_data.should match(/257.+/)
-    remove_dir_from_db() #call to remove created dir
+    remove_dir_from_db(@tempdirname) #call to remove created dir
    end
   end
  
@@ -90,16 +91,16 @@ end
  context "Unauthorised user calls remove_dir" do
    it "should respond with 530 " do
     @test.reset_sent!
-    @test.receive_line("RMD rspectest")
+    @test.receive_line("RMD x")
     @test.sent_data.should match(/530.*/)
    end
   end
  
  context "Logged in user calls delete dir" do
    it "should respond with 250 " do
-    create_dir_in_db() #create a dir to test remove
+    name = create_dir_in_db() #create a dir to test remove
     log_in()
-    @test.receive_line("RMD rspectest")
+    @test.receive_line("RMD #{name}")
     @test.sent_data.should match(/250.+/)
   end
  end
@@ -124,12 +125,12 @@ end
   
   context "Logged in and calls change dir " do
    it "should respond with 250 if called with dir name " do
-   create_dir_in_db() #create a dir to test remove
+   @dirname = create_dir_in_db() #create a dir to test remove
    log_in()
-    @test.receive_line("CWD rspectest")
+    @test.receive_line("CWD #{@dirname}")
     @test.sent_data.should match(/250.+/)
-    @test.name_prefix.should eql("/rspectest")
-   remove_dir_from_db() # Call to remove created dir
+    @test.name_prefix.should eql("/"+"#{@dirname}")
+   remove_dir_from_db(@dirname) # Call to remove created dir
    end
    
   end
@@ -174,14 +175,14 @@ end
   end
 
    it "should respond with 150 ... 226 when called in the files dir with no param" do
-    create_dir_in_db() #create a dir to test remove
+    @dirname = create_dir_in_db() #create a dir to test remove
     log_in()
-    @test.receive_line("CWD rspectest")
+    @test.receive_line("CWD #{@dirname}")
     @test.receive_line("PASV")
     @test.reset_sent!
     @test.receive_line("LIST")
     @test.sent_data.should match(/150.+226.+/m)
-    remove_dir_from_db() # Call to remove created dir 
+    remove_dir_from_db(@dirname) # Call to remove created dir 
   
    end
   
@@ -216,12 +217,11 @@ end
  
    it "should respond with 150 ... 226 when called in the put files " do
      
-     create_tempfile(@filename)
-     
+     @filename = create_tempfile()
      log_in_pasv()
-     @test.receive_line("STOR file.path @filename")
+     @test.receive_line("STOR #{@filename} /tmp/#{@filename}")
      @test.sent_data.should match(/150.+200.+/m)
-     remove_file_from_db()
+     remove_file_from_db(@filename)
     
    end
   end 
@@ -250,10 +250,10 @@ end
   end
 
   it "should respond with 250 when the file is deleted" do
-    put_files_in_db() # create file on remote
+   @filename = put_files_in_db() # create file on remote
     log_in()
     @test.reset_sent!
-    @test.receive_line("DELE path rspectest")
+    remove_file_from_db(@filename)
     @test.sent_data.should match(/250.+/)
   end
 
@@ -275,7 +275,7 @@ end
  context "Called by not logged in user" do
    it "should always respond with 530 " do
     @test.reset_sent!
-    @test.receive_line("RETR filesquery")
+    @test.receive_line("RETR x")
     @test.sent_data.should match(/530.+/)
    end
  end
@@ -299,12 +299,12 @@ end
    end
 
    it "should always respond with 150..226 when called with valid file" do
-     put_files_in_db()
+     @filename = put_files_in_db()
      log_in_pasv()
-     @test.receive_line("RETR path rspectest /tmp/rspectest")
+     @test.receive_line("RETR #{@filename} /tmp/#{@filename}")
      @test.sent_data.should match(//)
-     remove_file_from_db() # from database
-     remove_file_from_sys() # delete file from tmp directory
+     remove_file_from_db(@filename) # from database
+     remove_file_from_sys(@filename) # delete file from tmp directory
    end
  end
 end
@@ -330,27 +330,42 @@ private
  end
  
  def create_dir_in_db() # create dir in db
-   log_in()
-    @test.receive_line("MKD rspectest")
+    dirname = Dir.mktmpdir("foo")
+    @newdirname = dirname.match(/([^\/.]*)$/)
+    log_in()
+    
+    @test.receive_line("MKD #{@newdirname[0]}")
+    
+    return @newdirname[0]
  end
  
- def remove_dir_from_db() # remove dir from db
+ def remove_dir_from_db(name) # remove dir from db
    
    log_in()
-    @test.receive_line("RMD rspectest")
+    @test.receive_line("RMD #{name}")
    
  end
   
- # def create_tempfile(filename) # create a tempfile
-#    
-   # @file = Tempfile.new(filename)   
-   # @file.write("hello world")   
- # end
-#  
- def remove_file_from_db() # removes file from db
+ def create_tempfile() # create a tempfile
+   
+   @file = Tempfile.new('random')
+      
+   @file.write("hello world") 
+   
+   name = @file.path
+   
+   @newfilenam = name.match(/([^\/.]*)$/)
+     
+   @newfilename = @newfilenam[0]
+     
+   return @newfilename
+     
+ end
+ 
+ def remove_file_from_db(filename) # removes file from db
     log_in()
     @test.reset_sent!
-    @test.receive_line("DELE path rspectest")
+    @test.receive_line("DELE #{filename}")
     @file.close
     
     @file.unlink
@@ -358,15 +373,16 @@ private
  end
  
  def put_files_in_db() # puts file in db
-    create_tempfile('rspectest')
+    @filename = create_tempfile()
     log_in_pasv()
-    @test.receive_line("STOR file.path rspectest")
+    @test.receive_line("STOR #{@filename} /tmp/#{@filename}")
+    return @filename
  end
 
- def remove_file_from_sys() #removes file from system
-  if File.exist?("/tmp/rspectest")
+ def remove_file_from_sys(filename) #removes file from system
+  if File.exist?("/tmp/#{filename}")
      
-     FileUtils.rm("/tmp/rspectest")
+     FileUtils.rm("/tmp/#{filename}")
   
    end
   end

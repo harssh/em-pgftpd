@@ -20,7 +20,8 @@ gem 'jquery-fileupload-rails'
 group :development do
   
   gem 'annotate', '2.5.0'
-
+  
+ 
 end
 
 group :development, :test do
