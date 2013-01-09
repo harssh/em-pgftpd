@@ -24,7 +24,7 @@ end
 
 
  describe EM::FTPD::Server, "Authorisation" do
-   VCR.use_cassette 'authorisation/access' do 
+  
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
@@ -57,7 +57,7 @@ end
       @test.sent_data.should match(/553.+/)
     end
   end
-   end
+   
 end
 
 

@@ -1,4 +1,4 @@
-Feature: listing
+Feature: change_directory
 
 Scenario: not logged in user calls change dir
     Given user not loged in
