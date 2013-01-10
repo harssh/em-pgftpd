@@ -21,7 +21,6 @@ require 'guid'
   end
 end
 
-
  describe EM::FTPD::Server, "Authorisation" do
   
   before(:each) do
@@ -61,7 +60,6 @@ end
   end
    
 end
-
 
  describe EM::FTPD::Server, "Make dir" do
    before(:each) do
@@ -167,8 +165,8 @@ end
   
  end
 
-
  describe EM::FTPD::Server, "Change_dir" do
+ 
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
@@ -212,14 +210,14 @@ end
 
  end
 
-
-
  describe EM::FTPD::Server, "Remove Dir" do
+  
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
   
   context "Unauthorised user calls remove_dir" do
+  
    it "should respond with 530 for failure" do
   
     @test.reset_sent!
@@ -242,8 +240,7 @@ end
      @test.receive_line("CWD #{@tempdirname}")  
     
      @test.sent_data.should match(/250.+/)   # 250 response on action success
-    
-    
+       
      @test.receive_line("RMD #{@tempdirname}")
      @test.sent_data.should match(/250.+/)   # 250 response on action success
      
@@ -258,7 +255,6 @@ end
   
  end
  
-
  describe EM::FTPD::Server, "Put Files" do
   
   before(:each) do
@@ -266,11 +262,13 @@ end
   end
 
     context "Unauthorised user calls Put files" do
+    
     it "should respond with 530 " do
       @test.reset_sent!
       @test.receive_line("stor")
       @test.sent_data.should match(/530.+/)  # 530 response on unauthorised access
     end
+ 
   end
  
   context "Logged in user calls PUT File" do
@@ -288,9 +286,7 @@ end
      log_in_pasv()
      @test.receive_line("STOR #{@filename} /tmp/#{@filename}")
      @test.sent_data.should match(/150.+200.+/m)  # 150 and 200 response on 
-          
      remove_file_from_remote(@filename)   # call to remove test file from remote
-     
      remove_file_from_sys(@filename) # call to delete test file from tmp directory in system
    
    end  
@@ -300,87 +296,95 @@ end
 end
 
  describe EM::FTPD::Server, "Delete Files" do
+  
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
 
- context "Called by Not Logged in user" do
-  it "should respond with 530 " do
-    @test.reset_sent!
-    @test.receive_line("DELE x")
-    @test.sent_data.should match(/530.*/)
-  end
-end
-
- context "Logged in user calls delete file" do
-  it "should respond with 553 when the no paramater " do
-    log_in()
-    @test.reset_sent!
-    @test.receive_line("DELE")
-    @test.sent_data.should match(/553.+/)
+  context "Called by Not Logged in user" do
+  
+   it "should respond with 530 " do
+     @test.reset_sent!
+     @test.receive_line("DELE x")
+     @test.sent_data.should match(/530.*/)  # 530 response on unauthorised access
+   end
+  
   end
 
-  it "should respond with 250 when the file is deleted" do
-    @filename = put_files_in_remote() # create file on remote
-    log_in()
-    @test.reset_sent!
-    remove_file_from_remote(@filename)
-    @test.sent_data.should match(/250.+/)
+  context "Logged in user calls delete file" do
+  
+   it "should respond with 553 when the no paramater " do
+     log_in()
+     @test.reset_sent!
+     @test.receive_line("DELE")
+     @test.sent_data.should match(/553.+/)  # 553 response on no params present
+   end
+   
+   it "should respond with 250 when the file is deleted" do
+  
+     @filename = put_files_in_remote() # create file on remote
+     log_in()
+     @test.reset_sent!
+     @test.receive_line("RETR #{@filename}")  # checks if file present on remote
+     @test.sent_data.should match(/150.+226.+/m) # 150 and 226 response on data transfer success
+     @test.receive_line("DELE #{@filename}")
+     @test.sent_data.should match(/250.+/)
+  
+   end
+  
   end
-
-  end
-end
+ end
 
  describe EM::FTPD::Server, "Get Files" do
+ 
   before(:each) do
     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
   end
   
  context "Called by not logged in user" do
+   
    it "should always respond with 530 " do
+ 
     @test.reset_sent!
     @test.receive_line("RETR x")
     @test.sent_data.should match(/530.+/) # 530 response when unauthorised access
+ 
    end
+ 
  end
 
- context "Logged in user calls get files" do
+  context "Logged in user calls get files" do
   
    it "should respond with 553 when called with no param" do
+ 
      log_in()
      @test.receive_line("RETR")
      @test.sent_data.should match(/553.+/) # 553 response on params not present
-  end
+ 
+   end
 
   
   
     it "should always respond with 150..226 when called with valid file" do
       
       @filename = put_files_in_remote()
-      
-      
       log_in_pasv()
-     
       @test.receive_line("RETR #{@filename}")
-      
       @test.sent_data.should match(/150.+226.+/m) # 150 and 226 response on data transfer success
-    
       puts "Data size in get files "+@test.sent_data
-      
       remove_file_from_remote(@filename) # call to remove test file from remote
-    
       remove_file_from_sys(@filename) # call to delete test file from tmp directory
-   
+    
     end
+  end
  end
-end
 
 
 
 private
 
 
- def log_in()
+ def log_in() # login
    
    @test.receive_line("USER 12345")
    @test.receive_line("PASS 12345")
@@ -388,14 +392,13 @@ private
    
  end
  
- def log_in_pasv() 
+ def log_in_pasv()   # login ion passive mode 
     @test.receive_line("USER 12345")
     @test.receive_line("PASS 12345")
     @test.receive_line("PASV")
     @test.reset_sent!
  end
- 
- 
+  
  def remove_dir_from_remote(name) # remove dir from remote
    
     log_in()

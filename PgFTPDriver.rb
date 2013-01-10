@@ -21,9 +21,9 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
        
       # puts "changing dir to : "+ndirname
        
-       conn.prepare('stmt2','select name,foid from folders where pname=$1 and name=$2')
+       conn.prepare('stmt2','select name,foid from folders where name=$1 ')
     
-       res = conn.exec_prepared('stmt2',[current_dirid||'1',ndirname])
+       res = conn.exec_prepared('stmt2',[ndirname])
                
          if res.count == 1
            
@@ -193,7 +193,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
    
     #puts "running put file stream method"
       
-    newfilename = path.match(/([^\/.]*)$/)
+    newfilename = path.match(/([^\/]*)$/)
     
     nfilename = "/"+newfilename[0]
     
@@ -207,6 +207,8 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
        conn.prepare('stmt10','update files set fdata = fdata || $1 where name = $2 and pname = $3')
        
        data.on_stream { |chunk|
+         
+         
          
          res1 = conn.exec_prepared('stmt10',[chunk,nfilename,current_dirid||"1"])
            
@@ -222,12 +224,10 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
     end
        
   end
-
-  
   
   def delete_file(path, &block)
    
-   filename = path.match(/([^\/.]*)$/)
+   filename = path.match(/([^\/]*)$/)
     
     nfilename = "/"+filename[0]
    begin
@@ -425,7 +425,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
      
      #puts "file path : "+path
      
-     filename = path.match(/([^\/.]*)$/)
+     filename = path.match(/([^\/]*)$/)
     
      nfilename = "/"+filename[0]
      
@@ -442,22 +442,19 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
           fdata = res.getvalue(0,1)
           
                      
-                @file = Tempfile.new('tempfile')
-      
-                @file.write("#{fdata}") 
+          file = Tempfile.new('tempfile')
+               
+          file.write fdata 
+        
+          name = file.path
    
-                name = @file.path
-   
-                @newfilenam = name.match(/([^\/.]*)$/)
+          @newfilenam = name.match(/([^\/.]*)$/)
      
-                @newfilename = @newfilenam[0]
+          @newfilename = @newfilenam[0]
                 
                                  
-                yield @file.path
-          
-         
-        
-          
+          yield file.path
+           
                      
     rescue Exception => e
       
@@ -466,36 +463,31 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
     ensure
       
       closedb(conn)
-      
-     
-    
-      
+         
     end
     
   end
-  
-  
  
   def bytes(path, &block)
     
-
-     begin
-   
+  
+    begin
+    
        
-       yield path.size
-       
-       
+      yield path.size
+          
          
     rescue Exception => e
       
       puts e.message
       
     ensure
-  
+      
+      closedb(conn)
     
     end
     
-   
+    
   end
   
     
@@ -509,7 +501,7 @@ private
 
   def file_item(name,bytes)
     EM::FTPD::DirectoryItem.new(:name => name, :directory => false, :size => bytes)
- 
+  
   end
   
   def connecttodb()
