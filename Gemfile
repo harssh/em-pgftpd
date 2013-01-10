@@ -1,38 +1,38 @@
 source 'https://rubygems.org'
 
-gem 'rails', '3.2.9'
+ gem 'rails', '3.2.9'
  gem 'pg', '0.12.2'
  gem 'simple_form'
  gem 'bootstrap-sass', '~> 2.2.1.1'
  gem 'bcrypt-ruby', '3.0.1'
  gem 'faker', '1.0.1'
  gem 'will_paginate', '3.0.3'
-gem 'bootstrap-will_paginate', '0.0.6'
+ gem 'bootstrap-will_paginate', '0.0.6'
  gem 'database_cleaner', '0.7.0'
-gem 'dynamic_form'
-gem 'acts_as_tree_rails3'
-gem 'paperclip'
-gem 'jquery-fileupload-rails'
+ gem 'dynamic_form'
+ gem 'acts_as_tree_rails3'
+ gem 'paperclip'
+ gem 'jquery-fileupload-rails'
+
 # Bundle edge Rails instead:
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
 
 
 group :development do
   
-  gem 'annotate', '2.5.0'
   
-  gem 'vcr'
-  gem 'webmock'
-
+  
 end
 
 group :development, :test do
-gem 'sqlite3', '1.3.5'
+ gem 'sqlite3', '1.3.5'
  gem 'rspec-rails', '2.11.0'
  gem 'guard-rspec', '1.2.1'
  gem 'guard-spork', '1.2.0'
  gem 'spork', '0.9.2'
  gem 'launchy'
+ gem 'annotate', '2.5.0'
+ gem "guid", "~> 0.1.1"
 end
 
 
@@ -53,14 +53,14 @@ gem 'jquery-rails', '2.0.2'
 
 group :test do 
   gem 'capybara', '1.1.2'
-    gem 'cucumber-rails', '1.2.1', :require => false
+  gem 'cucumber-rails', '1.2.1', :require => false
   gem 'database_cleaner', '0.7.0'
   gem 'cucumber'
 
 end
 
-gem 'em-ftpd', :git => "https://github.com/threadmetal/em-ftpd"
-gem 'eventmachine'
+  gem 'em-ftpd', :git => "https://github.com/threadmetal/em-ftpd"
+  gem 'eventmachine'
 
 # Test gems on Linux
 group :test do

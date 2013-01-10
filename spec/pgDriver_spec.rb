@@ -1,7 +1,6 @@
 require 'tempfile'
 require 'spec_helper'
-require 'vcr'
-
+require 'guid'
 
 
  describe EM::FTPD::Server, "initial" do
@@ -13,12 +12,12 @@ require 'vcr'
   it "should default to a root name" do
     @test.name_prefix.should eql("/")
   end
+
   context "connection is opened" do
-   VCR.use_cassette 'connection/open' do
+   
     it "should respond with 220 when connection is opened" do
-      @test.sent_data.should match(/^220/)
+      @test.sent_data.should match(/^220/)  # 220 response when connection is opened
     end
-   end
   end
 end
 
@@ -35,18 +34,21 @@ end
         @test.receive_line("USER 12345")
         @test.reset_sent!
         @test.receive_line("PASS 12345")
-        @test.sent_data.should match(/230.+/)
+        @test.sent_data.should match(/230.+/)  # 230 response on success
        end
       
   end
   
-  context "with unauthorised access as no password" do
+  context "with unauthorised access as missing password" do
+  
     it "should respond with 553 " do
+      
       @test.receive_line("USER 12345")
       @test.reset_sent!
       @test.receive_line("PASS")
-      @test.sent_data.should match(/553.+/)
+      @test.sent_data.should match(/553.+/)  # 553 response on params not present
     end
+  
   end
   
   context "with unauthorised access as no params" do
@@ -54,7 +56,7 @@ end
       @test.receive_line("USER")
       @test.reset_sent!
       @test.receive_line("PASS")
-      @test.sent_data.should match(/553.+/)
+      @test.sent_data.should match(/553.+/)  # 553 response on params not present
     end
   end
    
@@ -62,87 +64,46 @@ end
 
 
  describe EM::FTPD::Server, "Make dir" do
-  before(:each) do
-    @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
-  end
-
-  context "Unauthorised user calls make_dir" do
-   it "should respond with 530 " do
-    @test.reset_sent!
-    @test.receive_line("MKD x")
-    @test.sent_data.should match(/530.*/)
+   before(:each) do
+     @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
    end
-  end
-  
-  context "Logged in user calls Make dir" do
-   it "should respond with 257 when the directory is created" do
-    log_in()
-    @tempdirname = [*('A'..'Z')].sample(8).join
-    @test.receive_line("MKD #{@tempdirname}")
-    @test.sent_data.should match(/257.+/)
-    remove_dir_from_db(@tempdirname) #call to remove created dir
+
+   context "Unauthorised user calls make_dir" do
+    it "should respond with 530 " do
+     @test.reset_sent!
+     @test.receive_line("MKD x")
+     @test.sent_data.should match(/530.*/) # 530 response on unauthorised access
+    end
    end
-  end
- 
-  end
-
-
- describe EM::FTPD::Server, "Remove Dir" do
-  before(:each) do
-    @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
-  end
   
-  
-
- context "Unauthorised user calls remove_dir" do
-   it "should respond with 530 " do
-    @test.reset_sent!
-    @test.receive_line("RMD x")
-    @test.sent_data.should match(/530.*/)
-   end
-  end
- 
- context "Logged in user calls delete dir" do
-   it "should respond with 250 " do
-    name = create_dir_in_db() #create a dir to test remove
-    log_in()
-    @test.receive_line("RMD #{name}")
-    @test.sent_data.should match(/250.+/)
-  end
- end
-
-  
-end
-
-
- describe EM::FTPD::Server, "Change_dir" do
-  before(:each) do
-    @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
-  end
-
-  
-  context "not logged in user" do
-   it "should respond with 530" do
-    @test.reset_sent!
-    @test.receive_line("CWD")
-    @test.sent_data.should match(/530.*/)
-   end
-  end
-  
-  context "Logged in and calls change dir " do
-   it "should respond with 250 if called with dir name " do
-   @dirname = create_dir_in_db() #create a dir to test remove
-   log_in()
-    @test.receive_line("CWD #{@dirname}")
-    @test.sent_data.should match(/250.+/)
-    @test.name_prefix.should eql("/"+"#{@dirname}")
-   remove_dir_from_db(@dirname) # Call to remove created dir
-   end
+   context "Logged in user calls Make dir" do
    
+    it "should respond with 257 when the directory is created and show listing" do
+   
+     @tempdirname = Guid.new    
+     log_in()       
+   
+     @test.receive_line("MKD #{@tempdirname}")    
+   
+     @test.sent_data.should match(/257.+/)  # 257 response on Directory created
+    
+     @test.receive_line("CWD #{@tempdirname}")  
+    
+     @test.sent_data.should match(/250.+/)   # 250 response on change directory success
+    
+     @test.name_prefix.should match("#{@tempdirname}")
+    
+     @test.receive_line("PASV")
+     @test.reset_sent!
+     @test.receive_line("LIST") 
+    
+     @test.sent_data.should match(/150.+226.+/m)  # 150 and 226 response on list action success
+      
+     remove_dir_from_remote(@tempdirname) #call to remove created dir
+    end
+   end
+ 
   end
-
-end
-
 
  describe EM::FTPD::Server, "Dir LIST" do
   
@@ -156,7 +117,7 @@ end
     it "should respond with 530 " do
      @test.reset_sent!
      @test.receive_line("LIST")
-     @test.sent_data.should match(/530.+/)
+     @test.sent_data.should match(/530.+/)  # 530 response on unauthorised access
     end
   end
 
@@ -166,35 +127,137 @@ end
      
      log_in()
      @test.receive_line("LIST")
-     @test.sent_data.should match(/150.+425.+/m)
+     @test.sent_data.should match(/150.+425.+/m)  # 150  and 425 response on list action with no data socket 
    end
 
-  it "should respond with 150 ... 226 when called in the root dir with no param" do
+   it "should respond with 150 ... 226 when called in the root dir with no param" do
    
-    log_in_pasv()
-    @test.reset_sent!
-    @test.receive_line("LIST")
-    @test.sent_data.should match(/150.+226.+/m)
+     log_in_pasv()
+     @test.reset_sent!
+     @test.receive_line("LIST")
+     @test.name_prefix.should match("/")
+     @test.sent_data.should match(/150.+226.+/m)  # 150 and 226 response on successful list action 
    
-  end
+   end
 
-   it "should respond with 150 ... 226 when called in the files dir with no param" do
-    @dirname = create_dir_in_db() #create a dir to test remove
+   it "should respond with 150 ... 226 when called inside directory " do
+   
+    @tempdirname = Guid.new 
+    
     log_in()
-    @test.receive_line("CWD #{@dirname}")
+    
+    @test.receive_line("MKD #{@tempdirname}")    
+    
+    @test.sent_data.should match(/257.+/)  # 257 response on directory created
+    
+    @test.receive_line("CWD #{@tempdirname}")
+    
+    @test.sent_data.should match(/250.+/) # 250 response on change directory success
+    
     @test.receive_line("PASV")
     @test.reset_sent!
     @test.receive_line("LIST")
-    @test.sent_data.should match(/150.+226.+/m)
-    remove_dir_from_db(@dirname) # Call to remove created dir 
+    @test.sent_data.should match(/150.+226.+/m)  # 150 and 226 response on list action success
+    
+    remove_dir_from_remote(@tempdirname) # Call to remove test directory from remote 
+    
+   end
+  
+  end
+  
+ end
+
+
+ describe EM::FTPD::Server, "Change_dir" do
+  before(:each) do
+    @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
+  end
+
+  
+  context "not logged in user" do
+  
+   it "should respond with 530" do
+  
+    @test.reset_sent!
+    @test.receive_line("CWD")
+    @test.sent_data.should match(/530.*/)  # 530 response on unauthorised access
   
    end
   
   end
   
+  context "Logged in and calls change dir " do
+   
+   it "should respond with 250 if called with dir name " do
   
-end
+     @tempdirname = Guid.new    
+    
+     log_in()       
+   
+     @test.receive_line("MKD #{@tempdirname}")    
+   
+     @test.sent_data.should match(/257.+/)  # 257 response on directory created
+    
+     @test.receive_line("CWD #{@tempdirname}")  
+    
+     @test.sent_data.should match(/250.+/)  # 250 response on change directory success
+    
+     @test.name_prefix.should match("#{@tempdirname}")
+    
+     remove_dir_from_remote(@tempdirname)  # called to remove test directory from remote  
+  
+   end
+   
+  end
 
+ end
+
+
+
+ describe EM::FTPD::Server, "Remove Dir" do
+  before(:each) do
+    @test = EM::FTPD::Server.new(nil, PgFTPDriver.new)
+  end
+  
+  context "Unauthorised user calls remove_dir" do
+   it "should respond with 530 for failure" do
+  
+    @test.reset_sent!
+    @test.receive_line("RMD x")
+    @test.sent_data.should match(/530.*/)  # 530 response on unauthorised access
+  
+   end
+  end
+ 
+ context "Logged in user calls delete dir" do
+   it "should respond with 250 if success " do
+    
+     @tempdirname = Guid.new    
+     log_in()       
+   
+     @test.receive_line("MKD #{@tempdirname}")    
+    
+     @test.sent_data.should match(/257.+/)  # 257 response on directory created
+     
+     @test.receive_line("CWD #{@tempdirname}")  
+    
+     @test.sent_data.should match(/250.+/)   # 250 response on action success
+    
+    
+     @test.receive_line("RMD #{@tempdirname}")
+     @test.sent_data.should match(/250.+/)   # 250 response on action success
+     
+     @test.reset_sent!
+     
+     @test.receive_line("CWD #{@tempdirname}")  
+    
+     @test.sent_data.should match(/550.+/)    # 550 response on action failure 
+  end
+ end
+
+  
+ end
+ 
 
  describe EM::FTPD::Server, "Put Files" do
   
@@ -206,7 +269,7 @@ end
     it "should respond with 530 " do
       @test.reset_sent!
       @test.receive_line("stor")
-      @test.sent_data.should match(/530.+/)
+      @test.sent_data.should match(/530.+/)  # 530 response on unauthorised access
     end
   end
  
@@ -215,7 +278,7 @@ end
    it "should respond with 150 ...553 when called with no data socket" do
      log_in()
      @test.receive_line("STOR")
-     @test.sent_data.should match(/553.+/)
+     @test.sent_data.should match(/553.+/)  # 553 response on no datasocket present
    end
 
  
@@ -224,10 +287,14 @@ end
      @filename = create_tempfile()
      log_in_pasv()
      @test.receive_line("STOR #{@filename} /tmp/#{@filename}")
-     @test.sent_data.should match(/150.+200.+/m)
-     remove_file_from_db(@filename)
-    
-   end
+     @test.sent_data.should match(/150.+200.+/m)  # 150 and 200 response on 
+          
+     remove_file_from_remote(@filename)   # call to remove test file from remote
+     
+     remove_file_from_sys(@filename) # call to delete test file from tmp directory in system
+   
+   end  
+   
   end 
 
 end
@@ -254,21 +321,14 @@ end
   end
 
   it "should respond with 250 when the file is deleted" do
-   @filename = put_files_in_db() # create file on remote
+    @filename = put_files_in_remote() # create file on remote
     log_in()
     @test.reset_sent!
-    remove_file_from_db(@filename)
+    remove_file_from_remote(@filename)
     @test.sent_data.should match(/250.+/)
   end
 
-  it "should respond with 550 when the file is not deleted" do
-    log_in()
-    @test.reset_sent!
-    @test.receive_line("DELE x")
-    @test.sent_data.should match(/250.+/)
   end
-
- end
 end
 
  describe EM::FTPD::Server, "Get Files" do
@@ -280,7 +340,7 @@ end
    it "should always respond with 530 " do
     @test.reset_sent!
     @test.receive_line("RETR x")
-    @test.sent_data.should match(/530.+/)
+    @test.sent_data.should match(/530.+/) # 530 response when unauthorised access
    end
  end
 
@@ -289,27 +349,29 @@ end
    it "should respond with 553 when called with no param" do
      log_in()
      @test.receive_line("RETR")
-     @test.sent_data.should match(/553.+/)
+     @test.sent_data.should match(/553.+/) # 553 response on params not present
   end
 
   
-   it "should always respond with 551 when called with an invalid file" do
-     @test.receive_line("USER 12345")
-     @test.receive_line("PASS 12345")
-     @test.receive_line("PASV")
-     @test.reset_sent!
-     @test.receive_line("RETR x")
-     @test.sent_data.should_not match(/551.+/)
-   end
-
-   it "should always respond with 150..226 when called with valid file" do
-     @filename = put_files_in_db()
-     log_in_pasv()
-     @test.receive_line("RETR #{@filename} /tmp/#{@filename}")
-     @test.sent_data.should match(//)
-     remove_file_from_db(@filename) # from database
-     remove_file_from_sys(@filename) # delete file from tmp directory
-   end
+  
+    it "should always respond with 150..226 when called with valid file" do
+      
+      @filename = put_files_in_remote()
+      
+      
+      log_in_pasv()
+     
+      @test.receive_line("RETR #{@filename}")
+      
+      @test.sent_data.should match(/150.+226.+/m) # 150 and 226 response on data transfer success
+    
+      puts "Data size in get files "+@test.sent_data
+      
+      remove_file_from_remote(@filename) # call to remove test file from remote
+    
+      remove_file_from_sys(@filename) # call to delete test file from tmp directory
+   
+    end
  end
 end
 
@@ -333,19 +395,10 @@ private
     @test.reset_sent!
  end
  
- def create_dir_in_db() # create dir in db
-    dirname = Dir.mktmpdir("foo")
-    @newdirname = dirname.match(/([^\/.]*)$/)
-    log_in()
-    
-    @test.receive_line("MKD #{@newdirname[0]}")
-    
-    return @newdirname[0]
- end
  
- def remove_dir_from_db(name) # remove dir from db
+ def remove_dir_from_remote(name) # remove dir from remote
    
-   log_in()
+    log_in()
     @test.receive_line("RMD #{name}")
    
  end
@@ -353,20 +406,18 @@ private
  def create_tempfile() # create a tempfile
    
    @file = Tempfile.new('random')
-      
-   @file.write("hello world") 
-   
+     
    name = @file.path
    
    @newfilenam = name.match(/([^\/.]*)$/)
      
    @newfilename = @newfilenam[0]
-     
+    
    return @newfilename
      
  end
  
- def remove_file_from_db(filename) # removes file from db
+ def remove_file_from_remote(filename) # removes file from remote
     log_in()
     @test.reset_sent!
     @test.receive_line("DELE #{filename}")
@@ -376,10 +427,11 @@ private
     
  end
  
- def put_files_in_db() # puts file in db
+ def put_files_in_remote() # puts file in remote
     @filename = create_tempfile()
     log_in_pasv()
     @test.receive_line("STOR #{@filename} /tmp/#{@filename}")
+    remove_file_from_sys(@filename)
     return @filename
  end
 

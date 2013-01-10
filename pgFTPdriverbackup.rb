@@ -1,11 +1,11 @@
-require 'tempfile'
+
 require 'pg'
 require 'em-ftpd'
 require 'eventmachine'
 
 class PgFTPDriver
   
-attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
+attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist
 
   def change_dir(path, &block)
    
@@ -19,7 +19,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
   begin
        conn = connecttodb() 
        
-      # puts "changing dir to : "+ndirname
+       puts "changing dir to : "+ndirname
        
        conn.prepare('stmt2','select name,foid from folders where pname=$1 and name=$2')
     
@@ -29,9 +29,9 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
            
            currentdir(path,res.getvalue(0,1))
                       
-           #puts "Current dir is : "+current_dir
+           puts "Current dir is : "+current_dir
            
-          # puts "Current dir id is : "+current_dirid
+           puts "Current dir id is : "+current_dirid
            yield true           
          
          else   
@@ -54,7 +54,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
       
       begin
        conn = connecttodb() 
-       #puts "changing dir to : "+path
+       puts "changing dir to : "+path
        
       
        conn.prepare('stmt2','select pname from folders where pname=$1 and name=$2')
@@ -65,9 +65,9 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
            
            currentdir(path,res.getvalue(0,1))
                       
-           #puts "Current dir is : "+current_dir
+           puts "Current dir is : "+current_dir
            
-           #puts "Current dir id is : "+current_dirid
+           puts "Current dir id is : "+current_dirid
            yield true           
          
          else   
@@ -101,22 +101,11 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
     begin
       
        conn = connecttodb() 
-       #puts path
-      conn.prepare('stmt5','select name from folders where name=$1 and pname = $2')
-       
-       res1 = conn.exec_prepared('stmt5',[ndirname,current_dirid||'1'])    
-
-
+       puts path
+      
        conn.prepare('stmt6','insert into folders (name,pname) values ($1,$2)')
               
-       
-       if res1.count == 0
-       
        res = conn.exec_prepared('stmt6',[ndirname,current_dirid||'1'])    
-         yield true         
-       else
-         yield false
-       end
            
            yield true                   
          
@@ -167,7 +156,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
    
     nfilename = "/"+newfilename[0]
     
-    #puts "running put file method"
+    puts "running put file method"
     
     begin
        conn = connecttodb() 
@@ -191,7 +180,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
 
   def put_file_streamed(path, data , &block)
    
-    #puts "running put file stream method"
+    puts "running put file stream method"
       
     newfilename = path.match(/([^\/.]*)$/)
     
@@ -258,7 +247,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
     
     begin
     
-       #puts "deleting dir : "+nfilename
+       puts "deleting dir : "+nfilename
     
        conn = connecttodb()      
        
@@ -284,7 +273,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
          
     rescue Exception => e
       
-      #puts e.message
+      puts e.message
       
     ensure
       closedb(conn)
@@ -304,7 +293,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
   when "/" then    
      
   
-  #puts "contents of : "+path
+  puts "contents of : "+path
     begin
           conn = connecttodb()     
                      
@@ -362,7 +351,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
     
         path =  "/"+path.tr('^A-Za-z0-9.', '')
   
-     #   puts "contents of : "+path
+        puts "contents of : "+path
      
      begin
           conn = connecttodb()     
@@ -394,7 +383,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
                   val = res3.getvalue(m,0)    
                    val = val.tr('^A-Za-z0-9.', '')                                
                       
-                  @dirlist[k] = file_item(val,'60')
+                  @dirlist[k] = file_item(val,'20')
                      
                   m = m+1                      
                   k = k+1
@@ -423,40 +412,46 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
   
   def get_file(path, &block)
      
-     #puts "file path : "+path
+     puts "file path : "+path
      
      filename = path.match(/([^\/.]*)$/)
     
      nfilename = "/"+filename[0]
-     
-    # puts "filename "+nfilename
      
      begin
        conn = connecttodb() 
     
        conn.prepare('stmt1','select name,fdata from files where name=$1')
     
-          
+       puts "getting file  "+nfilename
+    
        res = conn.exec_prepared('stmt1',[nfilename])       
        
           fdata = res.getvalue(0,1)
           
-                     
-                @file = Tempfile.new('tempfile')
-      
-                @file.write("#{fdata}") 
-   
-                name = @file.path
-   
-                @newfilenam = name.match(/([^\/.]*)$/)
-     
-                @newfilename = @newfilenam[0]
-                
-                                 
-                yield @file.path
+          if File.exist?("/home/harssh/Documents"+nfilename)            
+
+             file = File.open("/home/harssh/Documents"+nfilename, "w+")
+          
+             file.write("#{fdata}") 
+             
+                  yield File.size(res.getvalue(0,0))
           
          
-        
+          else
+           
+              File.new("/home/harssh/Documents"+nfilename, "w+")
+
+              file = File.open("/home/harssh/Documents"+nfilename, "a")
+          
+              file.write("#{fdata}") 
+         
+              yield File.size(res.getvalue(0,0))
+          
+          end
+                
+                yield true
+                     
           
                      
     rescue Exception => e
@@ -467,22 +462,100 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
       
       closedb(conn)
       
-     
-    
+      file.close unless file == nil             
       
     end
     
   end
   
-  
+  def get_file_streamed(path , data, &block)
+   
+     puts "file path : "+path
+     
+    filename = path.match(/([^\/.]*)$/)
+    
+     nfilename = "/"+filename[0]
+     
+     begin
+       conn = connecttodb() 
+    
+       conn.prepare('stmt1','select name,fdata from files where name=$1')
+    
+       puts "getting file  "+nfilename
+    
+       res = conn.exec_prepared('stmt1',[nfilename])       
+       
+          fdata = res.getvalue(0,1)
+          
+          if File.exist?("/home/harssh/Documents"+nfilename)            
+
+             file = File.open("/home/harssh/Documents"+nfilename, "a")
+             
+             data.on_stream { |chunk|
+         
+             file.write("#{chunk}") 
+           
+                             }  
+          
+             
+             
+              yield bytes(fdata)
+         
+          else
+           
+              File.new("/home/harssh/Documents"+nfilename, "w+")
+
+              file = File.open("/home/harssh/Documents"+nfilename, "a")
+          
+             data.on_stream { |chunk|
+         
+             file.write("#{chunk}") 
+           
+                        }  
+          
+         
+              yield bytes(fdata)
+          
+          end
+                
+                yield true
+                     
+          
+                     
+    rescue Exception => e
+      
+      puts e.message
+      
+    ensure
+      
+      
+      
+      file.close unless file == nil             
+      
+    end
+    
+    
+    
+  end
  
   def bytes(path, &block)
     
-
-     begin
-   
+    filename = path.match(/([^\/.]*)$/)
+    
+    nfilename = "/"+filename[0]
+    
+    begin
+       conn = connecttodb() 
+    
+        puts "reading bytes of : "+nfilename
+        
+       conn.prepare('stmt1','select fdata from files where name=$1')              
+    
+       res = conn.exec_prepared('stmt1',[nfilename])
+    
+       data = res.getvalue(0,0)
        
-       yield path.size
+       yield data.size
        
        
          
@@ -491,7 +564,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
       puts e.message
       
     ensure
-  
+      closedb(conn)
     
     end
     
