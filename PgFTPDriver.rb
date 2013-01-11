@@ -387,8 +387,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
                                         
                   k = k+1                  
                end 
-                                         
-               
+                             
                 res3.each_with_index do |row2,m|
                                  
                   val = res3.getvalue(m,0)    
@@ -440,8 +439,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
        res = conn.exec_prepared('stmt1',[nfilename])       
        
           fdata = res.getvalue(0,1)
-          
-                     
+                               
           file = Tempfile.new('tempfile')
                
           file.write fdata 
@@ -451,11 +449,9 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
           @newfilenam = name.match(/([^\/.]*)$/)
      
           @newfilename = @newfilenam[0]
-                
-                                 
+                                         
           yield file.path
-           
-                     
+                              
     rescue Exception => e
       
       puts e.message
@@ -469,25 +465,21 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
   end
  
   def bytes(path, &block)
-    
-  
+      
     begin
-    
-       
+           
       yield path.size
-          
-         
+             
     rescue Exception => e
       
       puts e.message
       
     ensure
       
-      closedb(conn)
+      
     
     end
-    
-    
+        
   end
   
     
