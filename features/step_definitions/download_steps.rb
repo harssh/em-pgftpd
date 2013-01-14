@@ -1,81 +1,77 @@
 When /^user tries to download$/ do
-    @cucumbertest.reset_sent!
-    @cucumbertest.receive_line("RETR x")
+   
+   begin
+     @ftp.get("x")
+   rescue Exception => @e
+     puts @e
+   
+   end  
+
 end
 
 When /^user tries to download without params$/ do
-     @cucumbertest.reset_sent!
-     @cucumbertest.receive_line("RETR")
+   begin
+     @ftp.get()
+   rescue Exception => @e
+     puts @e
+   end  
 end
 
 Then /^user should get error params not present$/ do
-     @cucumbertest.sent_data.should match(/553.+/)
+   
+   
+    @e.message.should match(/wrong number of arguments/)
+    
 end
 
 When /^user tries to download with params$/ do
-     @filename = put_files_in_db()
-     log_in_pasv()
-     @cucumbertest.receive_line("RETR #{@filename} /tmp/#{@filename}")
-     @cucumbertest.sent_data.should match(//)
-     remove_file_from_db(@filename) # from database
-     remove_file_from_sys(@filename) # delete file from tmp directory
+    
+    begin
+     @filename = create_tempfile()
+     
+     @ftp.put(@file.path,@filename)
+     
+     @ftp.get(@filename)
+     
+    rescue Exception => @e
+     puts @e
+     
+   ensure 
+       
+     @file.unlink  
+     
+   end
 end
 
 Then /^user should get download success$/ do
-     @cucumbertest.sent_data.should match(//)
-     remove_file_from_db(@filename) # from database
-     remove_file_from_sys(@filename) # delete file from tmp directory
+      
+     @ftp.last_response_code.should match(/226/)    
+     
+     @ftp.delete(@filename)
+     remove_file_from_sys(@filename)
 end
 
 When /^user tries to download invalid file$/ do
-     @cucumbertest.receive_line("RETR x")
+    begin
+     @ftp.get("x")
+   rescue Exception => @e
+     puts @e
+   end  
+
 end
 
 Then /^user should get invalid file error$/ do
-     @cucumbertest.sent_data.should_not match(/551.+/)
+     @e.message.should match(/551 file not available/)
 end
+
 
 
 private
 
-
- def create_tempfile() # create a tempfile
-   
-   @file = Tempfile.new('random')
-      
-   @file.write("hello world") 
-   
-   name = @file.path
-   
-   @newfilenam = name.match(/([^\/.]*)$/)
-     
-   @newfilename = @newfilenam[0]
-     
-   return @newfilename
-     
- end
- 
- def remove_file_from_db(filename) # removes file from db
-    log_in()
-    @cucumbertest.reset_sent!
-    @cucumbertest.receive_line("DELE #{filename}")
-    @file.close
-    
-    @file.unlink
-    
- end
- 
- def put_files_in_db() # puts file in db
-    @filename = create_tempfile()
-    log_in_pasv()
-    @cucumbertest.receive_line("STOR #{@filename} /tmp/#{@filename}")
-    return @filename
- end
-
  def remove_file_from_sys(filename) #removes file from system
-  if File.exist?("/tmp/#{filename}")
+  if File.exist?("#{filename}")
      
-     FileUtils.rm("/tmp/#{filename}")
+     FileUtils.rm("#{filename}")
   
    end
   end

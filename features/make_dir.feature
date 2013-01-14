@@ -8,5 +8,5 @@ Scenario: not logged in user calls make dir
   
 Scenario: logged in user calls make directory
     Given user is logged in
-    When user tries make directory
-    Then user directory should change
+    When logged in user tries make directory
+    Then user should get success response

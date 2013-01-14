@@ -266,17 +266,17 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
     
        conn.prepare('stmt6','delete from folders where name=$1')
        
-     #  conn.prepare('stmt7','delete from folder where pname=$1')
+     
       
        res9 = conn.exec_prepared('stmt9',[nfilename,current_dirid||'1'])
     
        res6 = conn.exec_prepared('stmt6',[nfilename])
        
        
-       parent_id = res9.getvalue(0,0)
+     #  parent_id = res9.getvalue(0,0)
        
       
-      # res7 = conn.exec_prepared('stmt7',[parent_id])     
+          
        
            
            yield true         
@@ -284,7 +284,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
          
     rescue Exception => e
       
-      #puts e.message
+      puts e.message
       
     ensure
       closedb(conn)
@@ -438,7 +438,11 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
           
        res = conn.exec_prepared('stmt1',[nfilename])       
        
-          fdata = res.getvalue(0,1)
+         if res.count == 0
+           yield false
+           
+         else
+            fdata = res.getvalue(0,1)
                                
           file = Tempfile.new('tempfile')
                
@@ -451,6 +455,9 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
           @newfilename = @newfilenam[0]
                                          
           yield file.path
+           
+         end
+         
                               
     rescue Exception => e
       

@@ -9,4 +9,4 @@ Scenario: not logged in user calls change dir
 Scenario: logged in user calls change directory
     Given user is logged in
     When user tries change directory
-    Then user directory should change
+    Then user should get success response

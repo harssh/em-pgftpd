@@ -8,5 +8,5 @@ Scenario: not logged in user calls delete dir
   
 Scenario: logged in user calls delete directory
     Given user is logged in
-    When user tries delete directory
+    When logged in user tries delete directory
     Then user directory should be deleted

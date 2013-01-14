@@ -1,16 +1,29 @@
 When /^unauthorised user tries to delete directory$/ do
-  @cucumbertest.reset_sent!
-  @cucumbertest.receive_line("RMD x")
+    begin
+      @tempdirname = Guid.new 
+      @ftp.rmdir(@tempdirname.to_s)
+       
+    rescue Exception => @e
+      puts @e
+    end  
+  
 end
 
-When /^user tries delete directory$/ do
-    name = create_dir_in_db() #create a dir to test remove
-    @cucumbertest.reset_sent!
-     
-    @cucumbertest.receive_line("RMD #{name}")
-   
+When /^logged in user tries delete directory$/ do
+    begin
+      @tempdirname = Guid.new 
+      @ftp.mkdir(@tempdirname.to_s)
+      
+      @ftp.rmdir(@tempdirname.to_s)
+    
+    rescue Exception => @e
+      puts @e
+    end  
+  
 end
 
 Then /^user directory should be deleted$/ do
-   @cucumbertest.sent_data.should match(/250.+/)
+  
+     @ftp.last_response_code.should match("257")
+  
 end
