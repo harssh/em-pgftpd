@@ -1,4 +1,3 @@
-require './PgFTPDriver.rb'
 require 'net/ftp'
 
     
@@ -12,7 +11,6 @@ When /^the user log in with invalid information$/ do
     begin
       @ftp.login('t','0')
     rescue Exception => @e
-     
       puts @e
       
     end

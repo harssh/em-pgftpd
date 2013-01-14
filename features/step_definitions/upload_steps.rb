@@ -1,8 +1,8 @@
 
 Given /^user not logged in$/ do
-  
-     
+       
    @ftp = Net::FTP.new('localhost')
+
 end
 
 When /^user tries to upload file$/ do
@@ -59,6 +59,7 @@ Then /^user should get upload success$/ do
      
      @ftp.last_response_code.should match("200")
      @ftp.delete(@filename)
+     
 end
 
 
