@@ -9,7 +9,11 @@ end
 When /^the user log in with invalid information$/ do
         
     begin
-      @ftp.login('t','0')
+      
+      username = Guid.new.to_s
+      pass = Guid.new.to_s
+      
+      @ftp.login(username,pass)
     rescue Exception => @e
       puts @e
       

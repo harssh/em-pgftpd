@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
  gem 'rails', '3.2.9'
- gem 'pg', '0.12.2'
+ gem 'pg'
  gem 'simple_form'
  gem 'bootstrap-sass', '~> 2.2.1.1'
  gem 'bcrypt-ruby', '3.0.1'
@@ -54,7 +54,7 @@ group :test do
 
 end
 
-  gem 'em-ftpd', :git => "https://github.com/threadmetal/em-ftpd"
+  gem 'em-ftpd', '0.0.2'
   gem 'eventmachine'
 
 # Test gems on Linux
