@@ -57,7 +57,7 @@ end
 
 Then /^user should get upload success$/ do
      
-     @ftp.last_response_code.should match("200")
+     @ftp.last_response_code.should match("226")
      @ftp.delete(@filename)
      
 end
