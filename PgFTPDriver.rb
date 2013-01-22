@@ -233,9 +233,9 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
    begin
        conn = connecttodb() 
     
-       conn.prepare('stmt6','delete from files where name=$1 and pname=$2')
+       conn.prepare('stmt6','delete from files where name=$1 ')
                   
-       res4 = conn.exec_prepared('stmt6',[nfilename,current_dirid||'1'])
+       res4 = conn.exec_prepared('stmt6',[nfilename])
        
             yield true           
          
@@ -275,10 +275,7 @@ attr_accessor :current_dir ,:current_dirid,:dirlis,:dirlist,:file
        
      #  parent_id = res9.getvalue(0,0)
        
-      
-          
-       
-           
+                
            yield true         
           
          

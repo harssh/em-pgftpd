@@ -34,7 +34,9 @@ When /^the user logs in$/ do
       @ftp.login('12345','12345')
       
     rescue Exception => @e
+    
       puts @e
+    
     end
     
     
@@ -42,7 +44,8 @@ end
 
 Then /^the user should see an log in success message$/ do
     
-      @ftp.last_response_code.should match("200")    # 200 success response
+      @ftp.last_response_code.should match("200")    # 200 success response after login is done 
+      
 end
 
 

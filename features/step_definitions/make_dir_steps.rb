@@ -1,4 +1,5 @@
 When /^unauthorised user tries to make directory$/ do
+   
    begin
      @tempdirname = Guid.new 
   
@@ -7,6 +8,7 @@ When /^unauthorised user tries to make directory$/ do
    rescue Exception => @e
      puts @e
    end  
+   
 end
 
 When /^logged in user tries make directory$/ do
